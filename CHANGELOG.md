@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.1.0] - 2026-11-23
+- New sensors: Charge Mode, Range at Target Charge
+- New diagnostic entities: Last Updated (time of the vehicle's last report) and Vehicle Connected (turns off after 2 consecutive failed polls)
+- Range, odometer, tire pressure and climate temperature now have proper device classes, so HA can convert units
+
 ## [2.0.1] - 2026-11-23
 - Fix entities going "unavailable" after a Home Assistant or broker restart: discovery and availability are now republished when HA sends its birth message (`homeassistant/status` = `online`) and after every broker reconnect
 - Add MQTT Last Will so entities show offline if the connection drops unexpectedly

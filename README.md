@@ -12,7 +12,9 @@ The application has full support for Home Assistant MQTT discovery, and can run 
 - Plug state and charge mode
 - Set target charge level (50-100%)
 - Estimated charge completion time and rate (kW)
-- Estimated range
+- Estimated range, and projected range at target charge
+- Charge mode
+- Last updated time and vehicle connectivity (diagnostic)
 - Climate preconditioning start/stop with temperature control
 - Lock/Unlock
 - Odometer

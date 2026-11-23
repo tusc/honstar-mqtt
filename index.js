@@ -23,7 +23,7 @@ const { initAwsMqtt, getAwsClient, extendConnectionDeadline, closeAwsMqtt } = re
 const { connectBroker, publishData } = require("./src/broker");
 const { parseDashboard, printDashboard } = require("./src/dashboard");
 const { publishDiscovery } = require("./src/discovery");
-const { correctStaleSoc, publishAvailability, publishStates, updateVehicleLocation } = require("./src/states");
+const { correctStaleSoc, publishAvailability, publishConnected, publishStates, updateVehicleLocation } = require("./src/states");
 const {
   setTargetChargeLevel,
   startClimate,
@@ -294,6 +294,7 @@ Docker:
         publishData(brokerClient, vin, dashboard);
         publishStates(brokerClient, vin, dashboard, vehicle);
         publishAvailability(brokerClient, vin, true);
+        publishConnected(brokerClient, vin, true);
 
         // Handle target charge level with optimistic mode awareness
         if (dashboard.chargeSettings?.targetLevel != null) {
@@ -355,6 +356,9 @@ Docker:
     } catch (err) {
       log(`Poll failed: ${err.message}`);
       consecutiveFailures++;
+      if (consecutiveFailures >= 2) {
+        publishConnected(brokerClient, vin, false);
+      }
 
       if (consecutiveFailures >= 3) {
         log(`${consecutiveFailures} consecutive poll failures, re-authenticating...`);

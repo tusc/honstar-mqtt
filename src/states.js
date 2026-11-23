@@ -160,6 +160,14 @@ function updateVehicleLocation(latitude, longitude) {
   }
 }
 
+function publishConnected(brokerClient, vin, connected) {
+  brokerClient.publish(
+    `honstar-mqtt/${vin}/connected/state`,
+    connected ? "ON" : "OFF",
+    { retain: true, qos: 1 }
+  );
+}
+
 function publishAvailability(brokerClient, vin, available) {
   brokerClient.publish(
     `honstar-mqtt/${vin}/available`,
@@ -438,7 +446,31 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
     );
   }
 
+  if (dashboard.chargeSettings?.type) {
+    const mode = String(dashboard.chargeSettings.type)
+      .split(/[_ ]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+    brokerClient.publish(`honstar-mqtt/${vin}/ev_charge_mode/state`, mode, opts);
+  }
+
+  if (Number.isFinite(dashboard.projectedRangeAtTarget?.value)) {
+    brokerClient.publish(
+      `honstar-mqtt/${vin}/ev_range_at_target/state`,
+      String(Math.round(dashboard.projectedRangeAtTarget.value)),
+      opts
+    );
+  }
+
+  // Time the vehicle reported this data (falls back to now)
+  const reported = dashboard.timestamp ? new Date(dashboard.timestamp) : new Date();
+  brokerClient.publish(
+    `honstar-mqtt/${vin}/last_updated/state`,
+    (isNaN(reported) ? new Date() : reported).toISOString(),
+    opts
+  );
+
   log("Published HA entity states");
 }
 
-module.exports = { correctStaleSoc, publishAvailability, publishStates, updateVehicleLocation };
+module.exports = { correctStaleSoc, publishAvailability, publishConnected, publishStates, updateVehicleLocation };

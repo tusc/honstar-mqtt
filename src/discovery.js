@@ -53,6 +53,7 @@ function publishDiscovery(brokerClient, vin, vehicle) {
 
   pub("sensor", "ev_range", {
     name: "Range",
+    device_class: "distance",
     state_class: "measurement",
     unit_of_measurement: "mi",
     icon: "mdi:ev-station",
@@ -62,6 +63,7 @@ function publishDiscovery(brokerClient, vin, vehicle) {
 
   pub("sensor", "odometer", {
     name: "Odometer",
+    device_class: "distance",
     state_class: "total_increasing",
     unit_of_measurement: "mi",
     icon: "mdi:counter",
@@ -100,6 +102,7 @@ function publishDiscovery(brokerClient, vin, vehicle) {
   // Climate preconditioning temperature
   pub("number", "ev_climate_temperature", {
     name: "Climate Temperature",
+    device_class: "temperature",
     icon: "mdi:thermometer",
     state_topic: `honstar-mqtt/${vin}/ev_climate_temperature/state`,
     command_topic: `honstar-mqtt/${vin}/ev_climate_temperature/set`,
@@ -157,6 +160,7 @@ function publishDiscovery(brokerClient, vin, vehicle) {
   for (const [, tp] of Object.entries(TIRE_POSITIONS)) {
     pub("sensor", tp.slug, {
       name: tp.name,
+      device_class: "pressure",
       state_class: "measurement",
       unit_of_measurement: "psi",
       icon: "mdi:car-tire-alert",
@@ -201,6 +205,40 @@ function publishDiscovery(brokerClient, vin, vehicle) {
     unit_of_measurement: "kW",
     icon: "mdi:flash",
     state_topic: `honstar-mqtt/${vin}/ev_charge_rate/state`,
+  });
+
+  pub("sensor", "ev_charge_mode", {
+    name: "Charge Mode",
+    icon: "mdi:calendar-clock",
+    state_topic: `honstar-mqtt/${vin}/ev_charge_mode/state`,
+  });
+
+  pub("sensor", "ev_range_at_target", {
+    name: "Range at Target Charge",
+    device_class: "distance",
+    state_class: "measurement",
+    unit_of_measurement: "mi",
+    icon: "mdi:map-marker-distance",
+    state_topic: `honstar-mqtt/${vin}/ev_range_at_target/state`,
+  });
+
+  // ── Diagnostics ──
+
+  pub("sensor", "last_updated", {
+    name: "Last Updated",
+    device_class: "timestamp",
+    entity_category: "diagnostic",
+    icon: "mdi:update",
+    state_topic: `honstar-mqtt/${vin}/last_updated/state`,
+  });
+
+  pub("binary_sensor", "connected", {
+    name: "Vehicle Connected",
+    device_class: "connectivity",
+    entity_category: "diagnostic",
+    payload_on: "ON",
+    payload_off: "OFF",
+    state_topic: `honstar-mqtt/${vin}/connected/state`,
   });
 
   log("Published HA MQTT discovery configs");
