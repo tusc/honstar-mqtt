@@ -31,6 +31,7 @@ if [ "$ADDON_MODE" = true ]; then
     MQTT_URL=$(bashio::config 'mqtt_url')
     POLL_INTERVAL=$(bashio::config 'poll_interval')
     DEBUG_MODE=$(bashio::config 'debug')
+    UNITS=$(bashio::config 'units')
 
     # Resolve auto_* MQTT placeholders using HA services API
     if [[ "$MQTT_URL" == *"auto_"* ]]; then
@@ -58,6 +59,7 @@ if [ "$ADDON_MODE" = true ]; then
     export MQTT_URL="$MQTT_URL"
     export POLL_INTERVAL="$POLL_INTERVAL"
     export DEBUG="$DEBUG_MODE"
+    export UNITS="$UNITS"
     export TZ=$(bashio::info.timezone)
 
 else

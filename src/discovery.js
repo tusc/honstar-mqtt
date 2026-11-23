@@ -1,4 +1,5 @@
 const { log, debug } = require("./config");
+const { units } = require("./units");
 
 const TIRE_POSITIONS = {
   frontLeft:  { slug: "tire_pressure_lf", name: "Tire Pressure: Left Front", placard: "placardFront" },
@@ -33,6 +34,8 @@ const ALWAYS_AVAILABLE = new Set([
   "location",
   "last_updated",
   "connected",
+  "climate_auto_off",
+  "charge_energy_added",
 ]);
 
 function publishDiscovery(brokerClient, vin, vehicle) {
@@ -81,7 +84,7 @@ function publishDiscovery(brokerClient, vin, vehicle) {
     name: "Range",
     device_class: "distance",
     state_class: "measurement",
-    unit_of_measurement: "mi",
+    unit_of_measurement: units.distance,
     icon: "mdi:ev-station",
     force_update: true,
     state_topic: `honstar-mqtt/${vin}/ev_range/state`,
@@ -91,7 +94,7 @@ function publishDiscovery(brokerClient, vin, vehicle) {
     name: "Odometer",
     device_class: "distance",
     state_class: "total_increasing",
-    unit_of_measurement: "mi",
+    unit_of_measurement: units.distance,
     icon: "mdi:counter",
     force_update: true,
     state_topic: `honstar-mqtt/${vin}/odometer/state`,
@@ -132,10 +135,10 @@ function publishDiscovery(brokerClient, vin, vehicle) {
     icon: "mdi:thermometer",
     state_topic: `honstar-mqtt/${vin}/ev_climate_temperature/state`,
     command_topic: `honstar-mqtt/${vin}/ev_climate_temperature/set`,
-    min: 60,
-    max: 90,
-    step: 1,
-    unit_of_measurement: "°F",
+    min: units.tempMin,
+    max: units.tempMax,
+    step: units.tempStep,
+    unit_of_measurement: units.temperature,
     mode: "slider",
   });
 
@@ -206,11 +209,11 @@ function publishDiscovery(brokerClient, vin, vehicle) {
       name: tp.name,
       device_class: "pressure",
       state_class: "measurement",
-      unit_of_measurement: "psi",
+      unit_of_measurement: units.pressure,
       icon: "mdi:car-tire-alert",
       force_update: true,
       state_topic: `honstar-mqtt/${vin}/tire_pressure/state`,
-      value_template: `{{ value_json.${tp.slug} | round(1) }}`,
+      value_template: `{{ value_json.${tp.slug} }}`,
       json_attributes_topic: `honstar-mqtt/${vin}/tire_pressure/state`,
       json_attributes_template: `{{ {'warning': value_json.${tp.slug}_warning, 'recommendation': value_json.${tp.slug}_placard} | tojson }}`,
     });
@@ -261,9 +264,31 @@ function publishDiscovery(brokerClient, vin, vehicle) {
     name: "Range at Target Charge",
     device_class: "distance",
     state_class: "measurement",
-    unit_of_measurement: "mi",
+    unit_of_measurement: units.distance,
     icon: "mdi:map-marker-distance",
     state_topic: `honstar-mqtt/${vin}/ev_range_at_target/state`,
+  });
+
+  pub("sensor", "hv_battery_preconditioning", {
+    name: "Battery Preconditioning",
+    icon: "mdi:battery-heart-variant",
+    state_topic: `honstar-mqtt/${vin}/hv_battery_preconditioning/state`,
+  });
+
+  pub("sensor", "charge_energy_added", {
+    name: "Charge Energy Added",
+    device_class: "energy",
+    state_class: "total_increasing",
+    unit_of_measurement: "kWh",
+    icon: "mdi:battery-plus",
+    state_topic: `honstar-mqtt/${vin}/charge_energy_added/state`,
+  });
+
+  pub("sensor", "climate_auto_off", {
+    name: "Climate Auto-Off",
+    device_class: "timestamp",
+    icon: "mdi:timer-outline",
+    state_topic: `honstar-mqtt/${vin}/climate_auto_off/state`,
   });
 
   // ── Diagnostics ──

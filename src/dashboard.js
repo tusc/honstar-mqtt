@@ -1,4 +1,4 @@
-const { log } = require("./config");
+const { log, debug } = require("./config");
 
 function parseDashboard(payload) {
   try {
@@ -8,6 +8,11 @@ function parseDashboard(payload) {
 
     const rb = reported.responseBody;
     if (!rb) return null;
+
+    // Debug: dump the raw response (VIN redacted) to help map new data points
+    debug(
+      `Raw dashboard data: ${JSON.stringify(rb).replace(/[A-HJ-NPR-Z0-9]{17}/g, "<VIN>")}`
+    );
 
     const result = {
       timestamp: rb.timestamp,

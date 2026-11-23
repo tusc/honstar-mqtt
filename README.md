@@ -18,6 +18,8 @@ The application has full support for Home Assistant MQTT discovery, and can run 
 - Charge mode
 - Last updated time and vehicle connectivity (diagnostic)
 - Refresh Now button for on-demand polling
+- Battery preconditioning status, charge energy added per session, climate auto-off time
+- Imperial or metric units
 - Start Charging button (experimental)
 - Climate preconditioning start/stop with temperature control
 - Lock/Unlock
@@ -148,6 +150,7 @@ node index.js
 | `VIN` | No | Vehicle VIN (defaults to first vehicle on account) |
 | `MQTT_URL` | Yes | MQTT broker URL (e.g. `mqtt://user:pass@host:1883`) |
 | `POLL_INTERVAL` | No | Seconds between polls (minimum/default: 900) |
+| `UNITS` | No | `imperial` (default: mi, psi, °F) or `metric` (km, kPa, °C). Add-on option: `units` |
 | `DEBUG` | No | Enable debug logging (default: false) |
 
 ## Home Assistant Entities
@@ -175,6 +178,9 @@ Once running, the following entities are automatically created via MQTT discover
 | Stop Charging | Button | Stop an active charge session |
 | Start Charging | Button | Start charging (experimental) |
 | Refresh Now | Button | Poll the vehicle immediately (at most every 2 minutes) |
+| Battery Preconditioning | Sensor | High-voltage battery preconditioning status |
+| Charge Energy Added | Sensor | kWh added in the current/last charge session (estimated from battery level; usable in the Energy dashboard) |
+| Climate Auto-Off | Sensor | When climate preconditioning will switch off automatically |
 | Last Updated | Sensor (diagnostic) | Time the vehicle last reported data |
 | Vehicle Connected | Binary Sensor (diagnostic) | Off after 2 consecutive failed polls |
 

@@ -1,11 +1,12 @@
 {
   "name": "honstar-mqtt",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "MQTT gateway for Honda/Acura EV connected vehicle services — polls vehicle status and publishes to MQTT",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "test": "node --test"
   },
   "dependencies": {
     "date-fns-tz": "^3.2.0",

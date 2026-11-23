@@ -23,6 +23,7 @@ const { initAwsMqtt, getAwsClient, extendConnectionDeadline, closeAwsMqtt } = re
 const { connectBroker, publishData } = require("./src/broker");
 const { parseDashboard, printDashboard } = require("./src/dashboard");
 const { publishDiscovery } = require("./src/discovery");
+const { units, fToDisplay, displayToF } = require("./src/units");
 const { correctStaleSoc, publishAvailability, publishConnected, publishDataAvailability, publishStates, updateVehicleLocation } = require("./src/states");
 const {
   setTargetChargeLevel,
@@ -170,6 +171,7 @@ Environment variables:
   MQTT_URL         MQTT broker URL (required)
                    e.g. mqtt://user:pass@192.168.1.100:1883
   POLL_INTERVAL    Seconds between polls (minimum/default: 900 = 15 min)
+  UNITS            "imperial" (default: mi, psi, °F) or "metric" (km, kPa, °C)
   DEBUG            Enable debug logging (true/false, default: false)
 
 Docker:
@@ -478,9 +480,10 @@ Docker:
     );
     brokerClient.publish(
       `honstar-mqtt/${vin}/ev_climate_temperature/state`,
-      String(climateTemp),
+      String(fToDisplay(climateTemp)),
       mqttOpts
     );
+    brokerClient.publish(`honstar-mqtt/${vin}/climate_auto_off/state`, "None", mqttOpts);
 
     // Lock state can't be queried from the API. Keep the retained state from the
     // last command (if any) instead of resetting it to unknown on every start.
@@ -490,17 +493,18 @@ Docker:
     brokerClient.on("message", async (topic, message) => {
       // ── Climate temperature (no API call, just store) ──
       if (topic === climateTempTopic) {
-        const temp = parseInt(message.toString(), 10);
-        if (isNaN(temp) || temp < 60 || temp > 90) {
+        const shown = parseFloat(message.toString());
+        const temp = displayToF(shown);
+        if (isNaN(shown) || temp < 60 || temp > 90) {
           log(
-            `Invalid climate temperature: ${message.toString()} (must be 60-90)`
+            `Invalid climate temperature: ${message.toString()} (must be ${units.tempMin}-${units.tempMax}${units.temperature})`
           );
           return;
         }
         climateTemp = temp;
         brokerClient.publish(
           `honstar-mqtt/${vin}/ev_climate_temperature/state`,
-          String(climateTemp),
+          String(fToDisplay(climateTemp)),
           mqttOpts
         );
         log(`Climate temperature set to ${climateTemp}°F`);
@@ -744,15 +748,22 @@ Docker:
 
           // Auto-off after 60 minutes (max preconditioning duration)
           if (climateOffTimer) clearTimeout(climateOffTimer);
+          brokerClient.publish(
+            `honstar-mqtt/${vin}/climate_auto_off/state`,
+            new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            mqttOpts
+          );
           climateOffTimer = setTimeout(() => {
             climateMode = "off";
             climateOffTimer = null;
             brokerClient.publish(climateStateTopic, "OFF", mqttOpts);
+            brokerClient.publish(`honstar-mqtt/${vin}/climate_auto_off/state`, "None", mqttOpts);
             log("Climate preconditioning auto-off after 60 minutes");
           }, 60 * 60 * 1000);
         } else {
           await stopClimate(accessToken, vin, pin, climateTemp);
           climateMode = "off";
+          brokerClient.publish(`honstar-mqtt/${vin}/climate_auto_off/state`, "None", mqttOpts);
           if (climateOffTimer) {
             clearTimeout(climateOffTimer);
             climateOffTimer = null;

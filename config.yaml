@@ -1,5 +1,5 @@
 name: HOnStar MQTT
-version: "2.2.0"
+version: "2.3.0"
 slug: honstar-mqtt
 description: >-
   MQTT Bridge for Honda/Acura EVs based on the GM BEV3 platform.
@@ -23,6 +23,7 @@ options:
   vin: ""
   mqtt_url: "mqtt://auto_username:auto_password@auto_hostname"
   poll_interval: 900
+  units: imperial
   debug: false
 schema:
   hws_email: email
@@ -31,5 +32,6 @@ schema:
   vin: str?
   mqtt_url: str?
   poll_interval: int?
+  units: list(imperial|metric)?
   debug: bool?
 init: false

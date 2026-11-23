@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.0] - 2026-11-23
+- New **Battery Preconditioning** sensor (high-voltage battery preconditioning status)
+- New **Charge Energy Added** sensor: kWh added in the current/last session, estimated from battery level; works with the Energy dashboard
+- New **Climate Auto-Off** sensor: when preconditioning will switch off automatically
+- New `units` option: `imperial` (default) or `metric` (km, kPa, °C)
+- Debug mode now logs the raw vehicle data (VIN redacted) to help add more data points
+- Automated tests (`npm test`) and a GitHub Actions check on every push
+
 ## [2.2.0] - 2026-11-23
 - Vehicle data entities go unavailable after 3 consecutive failed polls (controls and diagnostics stay available)
 - Door lock keeps the last commanded state across restarts instead of resetting to unknown, with `last_command` / `last_command_at` attributes

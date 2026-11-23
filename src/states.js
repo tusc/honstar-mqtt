@@ -1,6 +1,7 @@
 const { log, debug } = require("./config");
 const geoTz = require("geo-tz");
 const { toZonedTime, fromZonedTime } = require("date-fns-tz");
+const units = require("./units");
 
 function getBatteryCapacity(vehicle) {
   const model = vehicle?.ModelCode?.toUpperCase() || "";
@@ -24,6 +25,7 @@ const chargeState = {
   rangeIntervalRates: [],      // Per-interval range-based rates (kW)
   apiRates: [],                // Per-poll API rate estimates (kW)
   combinedRates: [],           // Per-poll combined rate estimates (kW)
+  energyAdded: 0,              // kWh added during the current/last session
 };
 
 // Vehicle location state for timezone detection
@@ -220,7 +222,7 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
   if (dashboard.battery?.range != null) {
     brokerClient.publish(
       `honstar-mqtt/${vin}/ev_range/state`,
-      String(Math.round(dashboard.battery.range)),
+      String(units.distance(dashboard.battery.range)),
       opts
     );
   }
@@ -228,7 +230,7 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
   if (dashboard.odometer?.value != null) {
     brokerClient.publish(
       `honstar-mqtt/${vin}/odometer/state`,
-      String(Math.round(dashboard.odometer.value)),
+      String(units.distance(dashboard.odometer.value)),
       opts
     );
   }
@@ -260,6 +262,7 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
       if (!chargeState.active) {
         chargeState.active = true;
         chargeState.isDcfc = null;
+        chargeState.energyAdded = 0;
         if (chargeState.preChargeSoc !== null) {
           debug(`Charge session started (baseline SOC: ${chargeState.preChargeSoc}%)`);
         } else {
@@ -269,6 +272,17 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
 
       const capacity = getBatteryCapacity(vehicle);
       const currentSoc = parseFloat(dashboard.battery?.stateOfCharge);
+
+      // Energy added this session, from SOC gained since charging started
+      if (chargeState.preChargeSoc !== null && !isNaN(currentSoc) && capacity) {
+        const added = Math.max(0, ((currentSoc - chargeState.preChargeSoc) / 100) * capacity);
+        chargeState.energyAdded = Math.max(chargeState.energyAdded, Math.round(added * 10) / 10);
+      }
+      brokerClient.publish(
+        `honstar-mqtt/${vin}/charge_energy_added/state`,
+        String(chargeState.energyAdded),
+        opts
+      );
       const currentRange = dashboard.battery?.range != null ? parseFloat(dashboard.battery.range) : null;
       const targetSoc = parseFloat(dashboard.chargeSettings?.targetLevel);
       debug(`Charge rate calc: model=${vehicle?.ModelCode} capacity=${capacity}kWh soc=${currentSoc} target=${targetSoc}`);
@@ -440,11 +454,11 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
     for (const [pos, data] of Object.entries(dashboard.tires)) {
       const tp = TIRE_POSITIONS[pos];
       if (tp) {
-        tireState[tp.slug] = Math.round(data.pressurePsi * 10) / 10;
+        tireState[tp.slug] = units.pressure(data.pressurePsi, data.pressureKpa);
         tireState[`${tp.slug}_warning`] = data.warning;
         const placardData = dashboard.tires[tp.placard];
         if (placardData) {
-          tireState[`${tp.slug}_placard`] = Math.round(placardData.pressurePsi * 10) / 10;
+          tireState[`${tp.slug}_placard`] = units.pressure(placardData.pressurePsi, placardData.pressureKpa);
         }
       }
     }
@@ -466,9 +480,18 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
   if (Number.isFinite(dashboard.projectedRangeAtTarget?.value)) {
     brokerClient.publish(
       `honstar-mqtt/${vin}/ev_range_at_target/state`,
-      String(Math.round(dashboard.projectedRangeAtTarget.value)),
+      String(units.distance(dashboard.projectedRangeAtTarget.value)),
       opts
     );
+  }
+
+  if (dashboard.hvBatteryPreconditioning != null) {
+    const raw = String(dashboard.hvBatteryPreconditioning);
+    const label = raw
+      .split(/[_ ]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+    brokerClient.publish(`honstar-mqtt/${vin}/hv_battery_preconditioning/state`, label, opts);
   }
 
   // Time the vehicle reported this data (falls back to now)
@@ -482,4 +505,4 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
   log("Published HA entity states");
 }
 
-module.exports = { correctStaleSoc, publishAvailability, publishConnected, publishDataAvailability, publishStates, updateVehicleLocation };
+module.exports = { getBatteryCapacity, correctStaleSoc, publishAvailability, publishConnected, publishDataAvailability, publishStates, updateVehicleLocation };
