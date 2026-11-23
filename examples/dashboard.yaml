@@ -63,10 +63,17 @@ views:
               perform_action: button.press
               target: { entity_id: button.2024_acura_zdx_awd_a_spec_refresh_now }
       - type: entities
+        title: Schedule
+        entities:
+          - sensor.2024_acura_zdx_awd_a_spec_next_departure
+          - binary_sensor.2024_acura_zdx_awd_a_spec_at_home
+          - sensor.2024_acura_zdx_awd_a_spec_scheduled_cabin_temperature
+      - type: entities
         title: Climate & Security
         entities:
           - switch.2024_acura_zdx_awd_a_spec_climate_preconditioning
           - number.2024_acura_zdx_awd_a_spec_climate_temperature
+          - sensor.2024_acura_zdx_awd_a_spec_climate_auto_off
           - lock.2024_acura_zdx_awd_a_spec_door_lock
           - button.2024_acura_zdx_awd_a_spec_locate_vehicle
       - type: grid
@@ -88,8 +95,10 @@ views:
         entities:
           - sensor.2024_acura_zdx_awd_a_spec_range
       - type: entities
-        title: Diagnostics
+        title: Status
         entities:
+          - sensor.2024_acura_zdx_awd_a_spec_warning_lamps
+          - sensor.2024_acura_zdx_awd_a_spec_battery_preconditioning
           - sensor.2024_acura_zdx_awd_a_spec_last_updated
           - binary_sensor.2024_acura_zdx_awd_a_spec_vehicle_connected
       - type: map
@@ -106,18 +115,22 @@ views:
         title: Charge Session
         entities:
           - binary_sensor.2024_acura_zdx_awd_a_spec_plug_state
-          - sensor.2024_acura_zdx_awd_a_spec_estimated_charge_rate
+          - sensor.2024_acura_zdx_awd_a_spec_charge_power
+          - sensor.2024_acura_zdx_awd_a_spec_charge_energy_added
           - sensor.2024_acura_zdx_awd_a_spec_estimated_charge_completion
           - sensor.2024_acura_zdx_awd_a_spec_charge_mode
+          - sensor.2024_acura_zdx_awd_a_spec_charger_power_level
+          - sensor.2024_acura_zdx_awd_a_spec_charge_limited_reason
       - type: history-graph
         title: Battery Level
         hours_to_show: 12
         entities:
           - sensor.2024_acura_zdx_awd_a_spec_battery_level
       - type: history-graph
-        title: Estimated Charge Rate
+        title: Charge Power
         hours_to_show: 12
         entities:
+          - sensor.2024_acura_zdx_awd_a_spec_charge_power
           - sensor.2024_acura_zdx_awd_a_spec_estimated_charge_rate
       - type: grid
         title: Range
@@ -157,7 +170,9 @@ views:
               perform_action: button.press
               target: { entity_id: button.2024_acura_zdx_awd_a_spec_refresh_now }
       - type: entities
-        title: Diagnostics
+        title: Status
         entities:
+          - sensor.2024_acura_zdx_awd_a_spec_battery_preconditioning
+          - binary_sensor.2024_acura_zdx_awd_a_spec_at_home
           - sensor.2024_acura_zdx_awd_a_spec_last_updated
           - binary_sensor.2024_acura_zdx_awd_a_spec_vehicle_connected

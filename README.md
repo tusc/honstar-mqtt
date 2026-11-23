@@ -31,13 +31,13 @@ The application has full support for Home Assistant MQTT discovery, and can run 
 
 ## Example Dashboards
 
-These are example layouts showing what you can build with the entities this add-on creates, including everything added in this fork since 2.0.1 (Charge Mode, Range at Target Charge, Last Updated, Vehicle Connected, Refresh Now and Start Charging). The values shown are illustrative. A ready-to-paste dashboard using only built-in Home Assistant cards is in [`examples/dashboard.yaml`](examples/dashboard.yaml).
+These are example layouts showing what you can build with the entities this add-on creates, including everything added in this fork through 2.4.0 (charge mode and range at target, departure schedule, at home, charge power and energy added, charger power level, battery preconditioning, warning lamps, climate auto-off, refresh and start-charging buttons, and diagnostics). The values shown are illustrative. A ready-to-paste dashboard using only built-in Home Assistant cards is in [`examples/dashboard.yaml`](examples/dashboard.yaml).
 
-**Overview:** battery, range, charge mode and target, charging controls, climate, door lock, tire pressures and diagnostics
+**Overview:** battery, range, charge mode and target, departure schedule, charging controls, climate, door lock, tire pressures and vehicle status
 
 ![Example overview dashboard](images/dashboards/overview.png)
 
-**Charging:** live charge session with rate, completion time and history
+**Charging:** live charge session with power, energy added, completion time, charger level and history
 
 ![Example charging dashboard](images/dashboards/charging.png)
 
