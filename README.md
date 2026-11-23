@@ -27,6 +27,20 @@ The application has full support for Home Assistant MQTT discovery, and can run 
 - Home Assistant MQTT discovery (automatic entity creation)
 - Configurable poll interval (900 seconds minimum)
 
+## Example Dashboards
+
+These are example layouts showing what you can build with the entities this add-on creates, including everything added in this fork since 2.0.1 (Charge Mode, Range at Target Charge, Last Updated, Vehicle Connected, Refresh Now and Start Charging). The values shown are illustrative. A ready-to-paste dashboard using only built-in Home Assistant cards is in [`examples/dashboard.yaml`](examples/dashboard.yaml).
+
+**Overview:** battery, range, charge mode and target, charging controls, climate, door lock, tire pressures and diagnostics
+
+![Example overview dashboard](images/dashboards/overview.png)
+
+**Charging:** live charge session with rate, completion time and history
+
+![Example charging dashboard](images/dashboards/charging.png)
+
+To use the example, go to Settings → Dashboards → Add dashboard → New dashboard from scratch, open it, choose ⋮ → Edit dashboard → ⋮ → Raw configuration editor, and paste the file contents. Then replace `2024_acura_zdx_awd_a_spec` with your vehicle's entity prefix.
+
 ## Notes
 
 ### Estimate charge complete time and rate
@@ -150,12 +164,21 @@ Once running, the following entities are automatically created via MQTT discover
 | EV Target Charge Level | Number | Settable charge target (50-100%) |
 | EV Charge Complete | Sensor | Estimated time until charge complete |
 | EV Charge Rate | Sensor | Estimated charging rate (kW) |
-| Lock | Lock | Lock/unlock vehicle (shows unknown after a few minutes) |
+| Lock | Lock | Lock/unlock vehicle (shows the last command sent, since the API cannot read the lock state) |
 | Location | Device Tracker | Vehicle GPS location |
 | Update Location | Button | Trigger on-demand location update |
 | Climate Preconditioning | Switch | Start/stop cabin preconditioning |
 | Climate Temperature | Number | Preconditioning target temp (60-90°F) |
 | Tire Pressure (x4) | Sensor | Individual tire pressures (psi) |
+| Charge Mode | Sensor | Current charge mode (e.g. Charge Later) |
+| Range at Target Charge | Sensor | Projected range at the target charge level (mi) |
+| Stop Charging | Button | Stop an active charge session |
+| Start Charging | Button | Start charging (experimental) |
+| Refresh Now | Button | Poll the vehicle immediately (at most every 2 minutes) |
+| Last Updated | Sensor (diagnostic) | Time the vehicle last reported data |
+| Vehicle Connected | Binary Sensor (diagnostic) | Off after 2 consecutive failed polls |
+
+Vehicle data entities become unavailable after 3 consecutive failed polls, so stale values are not shown as current.
 
 ## How It Works
 

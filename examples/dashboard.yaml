@@ -1,0 +1,163 @@
+# Example HOnStar MQTT dashboard (two views: Overview and Charging).
+# Uses only built-in Home Assistant cards.
+# Replace "2024_acura_zdx_awd_a_spec" with your own entity prefix
+# (Settings > Devices & services > MQTT > your vehicle shows the entity IDs).
+title: Acura ZDX
+views:
+  - title: Overview
+    path: overview
+    cards:
+      - type: gauge
+        entity: sensor.2024_acura_zdx_awd_a_spec_battery_level
+        name: Battery Level
+        needle: false
+        severity: { green: 70, yellow: 20, red: 0 }
+      - type: grid
+        title: Range
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_range
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_range_at_target_charge
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_charge_mode
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_odometer
+      - type: tile
+        entity: number.2024_acura_zdx_awd_a_spec_target_charge_level
+        features:
+          - type: numeric-input
+            style: slider
+      - type: entities
+        title: Charging
+        entities:
+          - binary_sensor.2024_acura_zdx_awd_a_spec_plug_state
+          - binary_sensor.2024_acura_zdx_awd_a_spec_charge_state
+          - sensor.2024_acura_zdx_awd_a_spec_estimated_charge_completion
+          - sensor.2024_acura_zdx_awd_a_spec_estimated_charge_rate
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: button
+            entity: button.2024_acura_zdx_awd_a_spec_start_charging
+            name: Start Charging
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target: { entity_id: button.2024_acura_zdx_awd_a_spec_start_charging }
+          - type: button
+            entity: button.2024_acura_zdx_awd_a_spec_stop_charging
+            name: Stop Charging
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target: { entity_id: button.2024_acura_zdx_awd_a_spec_stop_charging }
+          - type: button
+            entity: button.2024_acura_zdx_awd_a_spec_refresh_now
+            name: Refresh Now
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target: { entity_id: button.2024_acura_zdx_awd_a_spec_refresh_now }
+      - type: entities
+        title: Climate & Security
+        entities:
+          - switch.2024_acura_zdx_awd_a_spec_climate_preconditioning
+          - number.2024_acura_zdx_awd_a_spec_climate_temperature
+          - lock.2024_acura_zdx_awd_a_spec_door_lock
+          - button.2024_acura_zdx_awd_a_spec_locate_vehicle
+      - type: grid
+        title: Tire Pressure
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_tire_pressure_left_front
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_tire_pressure_right_front
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_tire_pressure_left_rear
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_tire_pressure_right_rear
+      - type: history-graph
+        title: Range
+        hours_to_show: 24
+        entities:
+          - sensor.2024_acura_zdx_awd_a_spec_range
+      - type: entities
+        title: Diagnostics
+        entities:
+          - sensor.2024_acura_zdx_awd_a_spec_last_updated
+          - binary_sensor.2024_acura_zdx_awd_a_spec_vehicle_connected
+      - type: map
+        entities:
+          - device_tracker.2024_acura_zdx_awd_a_spec_location
+  - title: Charging
+    path: charging
+    cards:
+      - type: gauge
+        entity: sensor.2024_acura_zdx_awd_a_spec_battery_level
+        name: Battery Level
+        severity: { green: 70, yellow: 20, red: 0 }
+      - type: entities
+        title: Charge Session
+        entities:
+          - binary_sensor.2024_acura_zdx_awd_a_spec_plug_state
+          - sensor.2024_acura_zdx_awd_a_spec_estimated_charge_rate
+          - sensor.2024_acura_zdx_awd_a_spec_estimated_charge_completion
+          - sensor.2024_acura_zdx_awd_a_spec_charge_mode
+      - type: history-graph
+        title: Battery Level
+        hours_to_show: 12
+        entities:
+          - sensor.2024_acura_zdx_awd_a_spec_battery_level
+      - type: history-graph
+        title: Estimated Charge Rate
+        hours_to_show: 12
+        entities:
+          - sensor.2024_acura_zdx_awd_a_spec_estimated_charge_rate
+      - type: grid
+        title: Range
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_range
+          - type: tile
+            entity: sensor.2024_acura_zdx_awd_a_spec_range_at_target_charge
+      - type: tile
+        entity: number.2024_acura_zdx_awd_a_spec_target_charge_level
+        features:
+          - type: numeric-input
+            style: slider
+      - type: grid
+        title: Controls
+        columns: 3
+        square: false
+        cards:
+          - type: button
+            entity: button.2024_acura_zdx_awd_a_spec_start_charging
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target: { entity_id: button.2024_acura_zdx_awd_a_spec_start_charging }
+          - type: button
+            entity: button.2024_acura_zdx_awd_a_spec_stop_charging
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target: { entity_id: button.2024_acura_zdx_awd_a_spec_stop_charging }
+          - type: button
+            entity: button.2024_acura_zdx_awd_a_spec_refresh_now
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target: { entity_id: button.2024_acura_zdx_awd_a_spec_refresh_now }
+      - type: entities
+        title: Diagnostics
+        entities:
+          - sensor.2024_acura_zdx_awd_a_spec_last_updated
+          - binary_sensor.2024_acura_zdx_awd_a_spec_vehicle_connected
