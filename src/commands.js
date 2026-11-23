@@ -271,7 +271,8 @@ async function locateVehicle(
     topicFilter: "CARFINDER_LOCATION_ASYNC",
     timeout: verifyTimeout,
     maxAttempts,
-    nonRetryableErrors: ["Pin does not match"],
+    // The API allows one locate per 10 minutes; retrying sooner just fails again
+    nonRetryableErrors: ["Pin does not match", "limited to once every"],
     parseResponse: (reported) => {
       debug(
         `Locate response: ${reported.status} (${reported.cigServiceRequestId})`

@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.4.0] - 2026-11-23
+- New sensors mapped from a real ZDX response: **Charger Power Level**, **Charge Limited Reason**, **Charge Power** (kW, reported while charging), **At Home** (presence), **Next Departure** (from the departure schedule, with the full weekly schedule as attributes), **Scheduled Cabin Temperature**, **Warning Lamps** (count, with messages as attributes)
+- **Lifetime Efficiency** (mi/kWh) is published when the vehicle reports it
+- Locate Vehicle no longer retries when the API's once-per-10-minutes limit applies; it tries again on the next poll
+
 ## [2.3.0] - 2026-11-23
 - New **Battery Preconditioning** sensor (high-voltage battery preconditioning status)
 - New **Charge Energy Added** sensor: kWh added in the current/last session, estimated from battery level; works with the Energy dashboard

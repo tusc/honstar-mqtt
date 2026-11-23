@@ -91,6 +91,48 @@ function parseDashboard(payload) {
       };
     }
 
+    // Extra charging/status fields (shapes taken from a real ZDX response)
+    const val = (o) => {
+      const v = o?.value;
+      return v === undefined || v === null || v === "" ? null : v;
+    };
+    const num = (o) => {
+      const v = parseFloat(val(o));
+      return Number.isFinite(v) ? v : null;
+    };
+    result.chargerPowerLevel = val(rb.chargerPowerLevel);
+    result.chargeLimitedReason = val(rb.hvChargeLimitedReason);
+    const atHome = val(rb.targetChargeLevelSettings?.vehInHomeLocation);
+    result.atHome = atHome == null ? null : String(atHome).toUpperCase() === "TRUE";
+    result.chargePowerKw = num(rb.hvBatteryChargeCompleteTime?.hvBatteryChargePowerLevel);
+    result.lifetimeEfficiency = num(rb.energyEfficiency?.lifeTimeEfficiency);
+    result.scheduledCabinTempC = num(
+      rb.cabinPreconditioningTempCustomSetting?.scheduledCabinPreconditionCustomSetValue
+    );
+
+    // Warning lamps: list of message strings
+    if (Array.isArray(rb.warningLamps?.data)) {
+      result.warnings = rb.warningLamps.data
+        .flatMap((d) => (Array.isArray(d.messages) ? d.messages : []))
+        .map((m) => (typeof m === "string" ? m : m?.message || m?.text || JSON.stringify(m)));
+    }
+
+    // Departure (commute) schedule; departTime is minutes after midnight
+    if (Array.isArray(rb.commuteScheduleEnabled)) {
+      const enabled = val(rb.commuteScheduleCustStatus);
+      result.commuteSchedule = {
+        enabled: enabled == null ? true : String(enabled).toUpperCase() === "TRUE",
+        days: rb.commuteScheduleEnabled
+          .map((d) => ({
+            day: d.dayOfWeek,
+            minutes: parseInt(d.departTime, 10),
+            targetChargeLevel: parseInt(d.targetChargeLevel, 10),
+            cabinPreconditioning: String(d.cabinPreconditioningSetting).toUpperCase() === "TRUE",
+          }))
+          .filter((d) => d.day && Number.isFinite(d.minutes)),
+      };
+    }
+
     // HV Battery Preconditioning
     if (rb.highVoltageBatteryPreconditioningStatus) {
       result.hvBatteryPreconditioning =

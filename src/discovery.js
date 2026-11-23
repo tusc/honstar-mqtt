@@ -291,6 +291,67 @@ function publishDiscovery(brokerClient, vin, vehicle) {
     state_topic: `honstar-mqtt/${vin}/climate_auto_off/state`,
   });
 
+  pub("sensor", "charger_power_level", {
+    name: "Charger Power Level",
+    icon: "mdi:ev-plug-type1",
+    state_topic: `honstar-mqtt/${vin}/charger_power_level/state`,
+  });
+
+  pub("sensor", "charge_limited_reason", {
+    name: "Charge Limited Reason",
+    icon: "mdi:battery-alert-variant-outline",
+    state_topic: `honstar-mqtt/${vin}/charge_limited_reason/state`,
+  });
+
+  pub("sensor", "charge_power", {
+    name: "Charge Power",
+    device_class: "power",
+    state_class: "measurement",
+    unit_of_measurement: "kW",
+    icon: "mdi:flash",
+    state_topic: `honstar-mqtt/${vin}/charge_power/state`,
+  });
+
+  pub("sensor", "lifetime_efficiency", {
+    name: "Lifetime Efficiency",
+    state_class: "measurement",
+    unit_of_measurement: "mi/kWh",
+    icon: "mdi:leaf",
+    state_topic: `honstar-mqtt/${vin}/lifetime_efficiency/state`,
+  });
+
+  pub("binary_sensor", "at_home", {
+    name: "At Home",
+    device_class: "presence",
+    payload_on: "ON",
+    payload_off: "OFF",
+    state_topic: `honstar-mqtt/${vin}/at_home/state`,
+  });
+
+  pub("sensor", "next_departure", {
+    name: "Next Departure",
+    device_class: "timestamp",
+    icon: "mdi:calendar-clock",
+    state_topic: `honstar-mqtt/${vin}/next_departure/state`,
+    json_attributes_topic: `honstar-mqtt/${vin}/next_departure/attributes`,
+  });
+
+  pub("sensor", "scheduled_cabin_temp", {
+    name: "Scheduled Cabin Temperature",
+    device_class: "temperature",
+    unit_of_measurement: units.temperature,
+    icon: "mdi:thermometer-auto",
+    state_topic: `honstar-mqtt/${vin}/scheduled_cabin_temp/state`,
+  });
+
+  pub("sensor", "warnings", {
+    name: "Warning Lamps",
+    state_class: "measurement",
+    icon: "mdi:car-light-alert",
+    state_topic: `honstar-mqtt/${vin}/warnings/state`,
+    json_attributes_topic: `honstar-mqtt/${vin}/warnings/attributes`,
+  });
+
   // ── Diagnostics ──
 
   pub("sensor", "last_updated", {

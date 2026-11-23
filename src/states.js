@@ -162,6 +162,34 @@ function updateVehicleLocation(latitude, longitude) {
   }
 }
 
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Next scheduled departure from the commute schedule, as UTC ISO string
+function nextDeparture(schedule, responseTimestamp, vehicleTimezone = null) {
+  if (!schedule?.enabled || !schedule.days.length) return null;
+  const tz = vehicleTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const now = responseTimestamp ? new Date(responseTimestamp) : new Date();
+  const local = toZonedTime(now, tz);
+  let best = null;
+  for (const d of schedule.days) {
+    const idx = DAY_ABBR.findIndex((a) => String(d.day).toLowerCase().startsWith(a.toLowerCase()));
+    if (idx === -1) continue;
+    const c = new Date(local);
+    let ahead = idx - local.getDay();
+    if (ahead < 0) ahead += 7;
+    c.setDate(c.getDate() + ahead);
+    c.setHours(Math.floor(d.minutes / 60), d.minutes % 60, 0, 0);
+    if (c <= local) c.setDate(c.getDate() + 7);
+    if (!best || c < best.local) best = { local: c, day: d };
+  }
+  if (!best) return null;
+  return {
+    iso: fromZonedTime(best.local, tz).toISOString(),
+    targetChargeLevel: best.day.targetChargeLevel,
+    cabinPreconditioning: best.day.cabinPreconditioning,
+  };
+}
+
 function publishConnected(brokerClient, vin, connected) {
   brokerClient.publish(
     `honstar-mqtt/${vin}/connected/state`,
@@ -494,6 +522,64 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
     brokerClient.publish(`honstar-mqtt/${vin}/hv_battery_preconditioning/state`, label, opts);
   }
 
+  const titleCase = (raw) =>
+    String(raw)
+      .split(/[_ ]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+
+  if (dashboard.chargerPowerLevel != null) {
+    brokerClient.publish(`honstar-mqtt/${vin}/charger_power_level/state`, titleCase(dashboard.chargerPowerLevel), opts);
+  }
+  if (dashboard.chargeLimitedReason != null) {
+    const r = String(dashboard.chargeLimitedReason);
+    brokerClient.publish(
+      `honstar-mqtt/${vin}/charge_limited_reason/state`,
+      /^no[_ ]?action$/i.test(r) ? "Not limited" : titleCase(r),
+      opts
+    );
+  }
+  if (dashboard.atHome != null) {
+    brokerClient.publish(`honstar-mqtt/${vin}/at_home/state`, dashboard.atHome ? "ON" : "OFF", opts);
+  }
+  if (dashboard.chargePowerKw != null) {
+    brokerClient.publish(`honstar-mqtt/${vin}/charge_power/state`, String(dashboard.chargePowerKw), opts);
+  } else if (dashboard.battery?.chargeStatus != null) {
+    brokerClient.publish(`honstar-mqtt/${vin}/charge_power/state`, "0", opts);
+  }
+  if (dashboard.lifetimeEfficiency != null) {
+    brokerClient.publish(`honstar-mqtt/${vin}/lifetime_efficiency/state`, String(dashboard.lifetimeEfficiency), opts);
+  }
+  if (dashboard.scheduledCabinTempC != null) {
+    const t = units.units.metric
+      ? dashboard.scheduledCabinTempC
+      : Math.round((dashboard.scheduledCabinTempC * 9) / 5 + 32);
+    brokerClient.publish(`honstar-mqtt/${vin}/scheduled_cabin_temp/state`, String(t), opts);
+  }
+  if (Array.isArray(dashboard.warnings)) {
+    brokerClient.publish(`honstar-mqtt/${vin}/warnings/state`, String(dashboard.warnings.length), opts);
+    brokerClient.publish(
+      `honstar-mqtt/${vin}/warnings/attributes`,
+      JSON.stringify({ messages: dashboard.warnings }),
+      opts
+    );
+  }
+  if (dashboard.commuteSchedule) {
+    const next = nextDeparture(dashboard.commuteSchedule, dashboard.timestamp, vehicleState.timezone);
+    brokerClient.publish(`honstar-mqtt/${vin}/next_departure/state`, next ? next.iso : "None", opts);
+    const fmt = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    brokerClient.publish(
+      `honstar-mqtt/${vin}/next_departure/attributes`,
+      JSON.stringify({
+        schedule_enabled: dashboard.commuteSchedule.enabled,
+        target_charge_level: next ? next.targetChargeLevel : null,
+        cabin_preconditioning: next ? next.cabinPreconditioning : null,
+        schedule: Object.fromEntries(dashboard.commuteSchedule.days.map((d) => [d.day, fmt(d.minutes)])),
+      }),
+      opts
+    );
+  }
+
   // Time the vehicle reported this data (falls back to now)
   const reported = dashboard.timestamp ? new Date(dashboard.timestamp) : new Date();
   brokerClient.publish(
@@ -505,4 +591,4 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
   log("Published HA entity states");
 }
 
-module.exports = { getBatteryCapacity, correctStaleSoc, publishAvailability, publishConnected, publishDataAvailability, publishStates, updateVehicleLocation };
+module.exports = { nextDeparture, getBatteryCapacity, correctStaleSoc, publishAvailability, publishConnected, publishDataAvailability, publishStates, updateVehicleLocation };

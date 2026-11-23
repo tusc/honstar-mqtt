@@ -181,6 +181,14 @@ Once running, the following entities are automatically created via MQTT discover
 | Battery Preconditioning | Sensor | High-voltage battery preconditioning status |
 | Charge Energy Added | Sensor | kWh added in the current/last charge session (estimated from battery level; usable in the Energy dashboard) |
 | Climate Auto-Off | Sensor | When climate preconditioning will switch off automatically |
+| Charger Power Level | Sensor | Charging current level setting reported by the vehicle |
+| Charge Limited Reason | Sensor | Why charging is limited, or "Not limited" |
+| Charge Power | Sensor | Charging power reported by the vehicle (kW, while charging) |
+| At Home | Binary Sensor | Whether the vehicle is at its saved home location |
+| Next Departure | Sensor | Next scheduled departure (weekly schedule in attributes) |
+| Scheduled Cabin Temperature | Sensor | Cabin temperature used for scheduled preconditioning |
+| Warning Lamps | Sensor | Number of active warning lamps (messages in attributes) |
+| Lifetime Efficiency | Sensor | Lifetime efficiency (mi/kWh), when the vehicle reports it |
 | Last Updated | Sensor (diagnostic) | Time the vehicle last reported data |
 | Vehicle Connected | Binary Sensor (diagnostic) | Off after 2 consecutive failed polls |
 
