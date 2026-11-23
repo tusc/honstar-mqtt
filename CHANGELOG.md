@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.4.1] - 2026-11-23
+- Fix Battery Level jumping to a wrong value (e.g. 92% instead of 73%) after switching to Charge Now or changing the target level. The stale-SOC estimate paired the new target with the projected range for the old target; it now only applies while charging, only raises SOC, and is ignored when it is more than 10 points off
+
 ## [2.4.0] - 2026-11-23
 - New sensors mapped from a real ZDX response: **Charger Power Level**, **Charge Limited Reason**, **Charge Power** (kW, reported while charging), **At Home** (presence), **Next Departure** (from the departure schedule, with the full weekly schedule as attributes), **Scheduled Cabin Temperature**, **Warning Lamps** (count, with messages as attributes)
 - **Lifetime Efficiency** (mi/kWh) is published when the vehicle reports it

@@ -214,25 +214,49 @@ function publishAvailability(brokerClient, vin, available) {
   );
 }
 
+// The reported SOC can lag behind range while charging. Estimate SOC from
+// range and the projected range at the target level, but only trust that
+// estimate while charging and when it is close to the reported value: right
+// after the target level changes, the projected range is still for the old
+// target and the estimate can be far off (e.g. 230 mi / (250 mi / 100%) = 92%).
+const MAX_SOC_CORRECTION = 10;
+
 function correctStaleSoc(dashboard) {
   if (
-    dashboard.battery?.stateOfCharge != null &&
-    dashboard.projectedRangeAtTarget?.value &&
-    dashboard.chargeSettings?.targetLevel &&
-    dashboard.battery?.range != null
+    dashboard.battery?.stateOfCharge == null ||
+    !dashboard.projectedRangeAtTarget?.value ||
+    !dashboard.chargeSettings?.targetLevel ||
+    dashboard.battery?.range == null
   ) {
-    const milesPerPercent =
-      dashboard.projectedRangeAtTarget.value / dashboard.chargeSettings.targetLevel;
-    const estimatedSoc = dashboard.battery.range / milesPerPercent;
-    const socDiff = Math.abs(estimatedSoc - dashboard.battery.stateOfCharge);
+    return;
+  }
 
-    if (socDiff > 3) {
-      debug(
-        `Stale SOC detected: reported=${Number(dashboard.battery.stateOfCharge).toFixed(1)}% ` +
-        `estimated=${Number(estimatedSoc).toFixed(1)}% (diff=${Number(socDiff).toFixed(1)}%) - using estimated value`
-      );
-      dashboard.battery.stateOfCharge = Math.round(estimatedSoc * 10) / 10;
-    }
+  const raw = String(dashboard.battery.chargeStatus || "").toUpperCase();
+  const charging = raw === "CHARGING" || raw === "ACTIVE" || raw.includes("CHARGING") && !raw.includes("NOT");
+  if (!charging) return;
+
+  const reported = parseFloat(dashboard.battery.stateOfCharge);
+  const milesPerPercent =
+    dashboard.projectedRangeAtTarget.value / dashboard.chargeSettings.targetLevel;
+  const estimatedSoc = parseFloat(dashboard.battery.range) / milesPerPercent;
+  const socDiff = estimatedSoc - reported;
+
+  if (!Number.isFinite(estimatedSoc) || estimatedSoc < 0 || estimatedSoc > 100) return;
+
+  if (Math.abs(socDiff) > MAX_SOC_CORRECTION) {
+    debug(
+      `Ignoring SOC estimate ${estimatedSoc.toFixed(1)}% (reported ${reported.toFixed(1)}%): too far off`
+    );
+    return;
+  }
+
+  // Only correct upward: while charging, a stale SOC lags behind, never ahead
+  if (socDiff > 3) {
+    debug(
+      `Stale SOC detected: reported=${reported.toFixed(1)}% ` +
+      `estimated=${estimatedSoc.toFixed(1)}% (diff=${socDiff.toFixed(1)}%) - using estimated value`
+    );
+    dashboard.battery.stateOfCharge = Math.round(estimatedSoc * 10) / 10;
   }
 }
 
