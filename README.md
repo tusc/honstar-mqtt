@@ -1,7 +1,4 @@
-> [!WARNING]
-> **This project is no longer maintained.**\
-> As I no longer own an Acura ZDX and have no way to test this code, no further updates, bug fixes, or security patches will be provided.
-
+# fork of tsightler's HOnStar addon for Home Assistant
 # HOnStar MQTT Gateway
 
 HOnStar-MQTT is a small Node.js application that bridges connected vehicle data from Honda/Acura EVs based on the General Motors BEV3 platform (Honda Prolouge/Acura ZDX) to MQTT.  These vehicles use a Honda Web Services (HWS) API layer over the top of more traditional GM Onstar service, thus the "HOnStar" name.  It will use the HWS API to poll for vehicle status (battery, range, tire pressures, charging, odometer) and publish this data to simple MQTT topics while also supporting MQTT commands to set the target charge level and to start/stop climate preconditioning.
