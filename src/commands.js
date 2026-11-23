@@ -7,6 +7,7 @@ const {
   requestLockDoors,
   requestUnlockDoors,
   requestStopCharging,
+  requestStartCharging,
   requestLocateVehicle,
 } = require("./api");
 
@@ -315,6 +316,26 @@ async function stopCharging(
   return true;
 }
 
+async function startCharging(
+  accessToken,
+  vin,
+  { maxAttempts = 1, verifyTimeout = 60000 } = {}
+) {
+  log("Starting charging...");
+
+  await executeCommand({
+    name: "start charging",
+    httpRequest: () => requestStartCharging(accessToken, vin),
+    topicFilter: "CHARGEMANAGEMENT_STARTFASTCHARGE_ASYNC",
+    parseResponse: parseStatusResponse("Start charging"),
+    timeout: verifyTimeout,
+    maxAttempts,
+  });
+
+  log("Charging started");
+  return true;
+}
+
 module.exports = {
   setTargetChargeLevel,
   startClimate,
@@ -322,5 +343,6 @@ module.exports = {
   lockDoors,
   unlockDoors,
   stopCharging,
+  startCharging,
   locateVehicle,
 };

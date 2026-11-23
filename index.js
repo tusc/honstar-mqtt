@@ -23,7 +23,7 @@ const { initAwsMqtt, getAwsClient, extendConnectionDeadline, closeAwsMqtt } = re
 const { connectBroker, publishData } = require("./src/broker");
 const { parseDashboard, printDashboard } = require("./src/dashboard");
 const { publishDiscovery } = require("./src/discovery");
-const { correctStaleSoc, publishAvailability, publishConnected, publishStates, updateVehicleLocation } = require("./src/states");
+const { correctStaleSoc, publishAvailability, publishConnected, publishDataAvailability, publishStates, updateVehicleLocation } = require("./src/states");
 const {
   setTargetChargeLevel,
   startClimate,
@@ -31,8 +31,14 @@ const {
   lockDoors,
   unlockDoors,
   stopCharging,
+  startCharging,
   locateVehicle,
 } = require("./src/commands");
+
+// Consecutive failed polls before vehicle data entities go unavailable (~45 min at 900s)
+const DATA_UNAVAILABLE_AFTER = 3;
+// Minimum time between manual "Refresh Now" polls
+const MIN_REFRESH_INTERVAL_MS = 120000;
 
 // ─── Poll Cycle ──────────────────────────────────────────────────────────────
 
@@ -295,6 +301,7 @@ Docker:
         publishStates(brokerClient, vin, dashboard, vehicle);
         publishAvailability(brokerClient, vin, true);
         publishConnected(brokerClient, vin, true);
+        publishDataAvailability(brokerClient, vin, true);
 
         // Handle target charge level with optimistic mode awareness
         if (dashboard.chargeSettings?.targetLevel != null) {
@@ -358,6 +365,10 @@ Docker:
       consecutiveFailures++;
       if (consecutiveFailures >= 2) {
         publishConnected(brokerClient, vin, false);
+      }
+      if (consecutiveFailures === DATA_UNAVAILABLE_AFTER) {
+        log(`${consecutiveFailures} consecutive poll failures, marking vehicle data unavailable`);
+        publishDataAvailability(brokerClient, vin, false);
       }
 
       if (consecutiveFailures >= 3) {
@@ -436,6 +447,8 @@ Docker:
     const climateTempTopic = `honstar-mqtt/${vin}/ev_climate_temperature/set`;
     const lockTopic = `honstar-mqtt/${vin}/door_lock/set`;
     const stopChargingTopic = `honstar-mqtt/${vin}/stop_charging/set`;
+    const startChargingTopic = `honstar-mqtt/${vin}/start_charging/set`;
+    const refreshTopic = `honstar-mqtt/${vin}/refresh/set`;
     const locateTopic = `honstar-mqtt/${vin}/locate/set`;
 
     const commandTopics = [
@@ -444,6 +457,8 @@ Docker:
       climateTempTopic,
       lockTopic,
       stopChargingTopic,
+      startChargingTopic,
+      refreshTopic,
       locateTopic,
     ];
     brokerClient.subscribe(commandTopics, { qos: 1 }, (err) => {
@@ -467,12 +482,10 @@ Docker:
       mqttOpts
     );
 
-    // Publish initial lock state as unknown (no way to query from API)
-    brokerClient.publish(
-      `honstar-mqtt/${vin}/door_lock/state`,
-      "None",
-      mqttOpts
-    );
+    // Lock state can't be queried from the API. Keep the retained state from the
+    // last command (if any) instead of resetting it to unknown on every start.
+    let pollCycleFn = null;
+    let lastRefresh = 0;
 
     brokerClient.on("message", async (topic, message) => {
       // ── Climate temperature (no API call, just store) ──
@@ -519,6 +532,49 @@ Docker:
         }
 
         executeLockCmd(cmd);
+        return;
+      }
+
+      // ── Start charging (experimental) ──
+      if (topic === startChargingTopic) {
+        if (message.toString().toUpperCase() !== "PRESS") {
+          log(`Invalid start charging command: ${message.toString()}`);
+          return;
+        }
+        if (activeOps.has('startCharging')) {
+          log("Start charging already in progress");
+          return;
+        }
+        activeOps.add('startCharging');
+        try {
+          await startCharging(accessToken, vin);
+        } catch (err) {
+          log(`Start charging command failed: ${err.message}`);
+          await handleReauth(err.message);
+        } finally {
+          activeOps.delete('startCharging');
+        }
+        return;
+      }
+
+      // ── Refresh now ──
+      if (topic === refreshTopic) {
+        if (message.toString().toUpperCase() !== "PRESS") {
+          log(`Invalid refresh command: ${message.toString()}`);
+          return;
+        }
+        if (!pollCycleFn || activeOps.has('poll')) {
+          log("Refresh requested, but a poll is already in progress");
+          return;
+        }
+        const wait = lastRefresh + MIN_REFRESH_INTERVAL_MS - Date.now();
+        if (wait > 0) {
+          log(`Refresh requested too soon, try again in ${Math.ceil(wait / 1000)}s`);
+          return;
+        }
+        lastRefresh = Date.now();
+        log("Manual refresh requested");
+        pollCycleFn();
         return;
       }
 
@@ -746,16 +802,22 @@ Docker:
           await unlockDoors(accessToken, vin, pin);
         }
 
-        // Command succeeded, publish final state then revert to unknown after 2 min
+        // Command succeeded: keep the commanded state (the API can't report the
+        // real one, so it may drift if the car is locked/unlocked another way)
         brokerClient.publish(
           lockStateTopic,
           cmd === "LOCK" ? "LOCKED" : "UNLOCKED",
           mqttOpts
         );
-        lockStateTimer = setTimeout(() => {
-          brokerClient.publish(lockStateTopic, "None", mqttOpts);
-          lockStateTimer = null;
-        }, 120000);
+        brokerClient.publish(
+          `honstar-mqtt/${vin}/door_lock/attributes`,
+          JSON.stringify({
+            source: "last command",
+            last_command: cmd.toLowerCase(),
+            last_command_at: new Date().toISOString(),
+          }),
+          mqttOpts
+        );
       } catch (err) {
         log(`Door ${cmd.toLowerCase()} command failed: ${err.message}`);
 
@@ -879,6 +941,7 @@ Docker:
         log(`Next poll in ${pollInterval}s`);
       }
     };
+    pollCycleFn = pollCycle;
 
     if (pollInterval === 900) {
       // Align to 15-minute wall-clock boundaries with random offset (5-10 min)

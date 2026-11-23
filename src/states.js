@@ -168,6 +168,14 @@ function publishConnected(brokerClient, vin, connected) {
   );
 }
 
+function publishDataAvailability(brokerClient, vin, available) {
+  brokerClient.publish(
+    `honstar-mqtt/${vin}/data_available`,
+    available ? "true" : "false",
+    { retain: true, qos: 1 }
+  );
+}
+
 function publishAvailability(brokerClient, vin, available) {
   brokerClient.publish(
     `honstar-mqtt/${vin}/available`,
@@ -407,7 +415,8 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
       // Record current SOC as baseline for next charge session
       const soc = parseFloat(dashboard.battery?.stateOfCharge);
       chargeState.preChargeSoc = !isNaN(soc) ? soc : null;
-      brokerClient.publish(`honstar-mqtt/${vin}/ev_charge_complete_time/state`, "", opts);
+      // "None" clears the sensor to unknown (an empty payload is rejected by HA)
+      brokerClient.publish(`honstar-mqtt/${vin}/ev_charge_complete_time/state`, "None", opts);
       brokerClient.publish(`honstar-mqtt/${vin}/ev_charge_rate/state`, "0", opts);
     }
   }
@@ -473,4 +482,4 @@ function publishStates(brokerClient, vin, dashboard, vehicle) {
   log("Published HA entity states");
 }
 
-module.exports = { correctStaleSoc, publishAvailability, publishConnected, publishStates, updateVehicleLocation };
+module.exports = { correctStaleSoc, publishAvailability, publishConnected, publishDataAvailability, publishStates, updateVehicleLocation };

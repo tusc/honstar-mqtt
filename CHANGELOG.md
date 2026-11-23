@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0] - 2026-11-23
+- Vehicle data entities go unavailable after 3 consecutive failed polls (controls and diagnostics stay available)
+- Door lock keeps the last commanded state across restarts instead of resetting to unknown, with `last_command` / `last_command_at` attributes
+- Estimated Charge Completion is now cleared properly when not charging (no more empty-payload warnings)
+- New **Refresh Now** button to poll on demand (at most once every 2 minutes)
+- New **Start Charging** button (experimental: mirrors the stop-charging API call and has not been verified on a vehicle)
+- Add-on now installs prebuilt images from `ghcr.io/tusc/honstar-mqtt-{arch}`, built by GitHub Actions when a release is published
+
 ## [2.1.0] - 2026-11-23
 - New sensors: Charge Mode, Range at Target Charge
 - New diagnostic entities: Last Updated (time of the vehicle's last report) and Vehicle Connected (turns off after 2 consecutive failed polls)

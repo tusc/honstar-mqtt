@@ -17,6 +17,8 @@ The application has full support for Home Assistant MQTT discovery, and can run 
 - Estimated range, and projected range at target charge
 - Charge mode
 - Last updated time and vehicle connectivity (diagnostic)
+- Refresh Now button for on-demand polling
+- Start Charging button (experimental)
 - Climate preconditioning start/stop with temperature control
 - Lock/Unlock
 - Odometer

@@ -415,6 +415,37 @@ async function requestStopCharging(accessToken, vin) {
   throw new Error(`Stop charging failed (HTTP ${resp.status}): ${errMsg}`);
 }
 
+// Experimental: mirrors the stop command ("stopFastCharge"); not verified on a vehicle
+async function requestStartCharging(accessToken, vin) {
+  log("Requesting start charging...");
+
+  const resp = await fetch(`${CONFIG.wscHost}/REST/NGT/ManageCharge/1.0`, {
+    method: "POST",
+    headers: hondaHeaders(accessToken),
+    body: JSON.stringify({
+      command: "startFastCharge",
+      device: vin,
+    }),
+  });
+
+  const data = await resp.json();
+
+  if (resp.status === 400) {
+    const errMsg = data.responseBody?.errorMessage || "Bad request";
+    throw new Error(`Start charging failed: ${errMsg}`);
+  }
+
+  if (resp.ok && (data.status === "IN_PROGRESS" || data.status === "success")) {
+    const reqId = data.responseBody?.cigServiceRequestId;
+    debug(`Start charging request ID: ${reqId}`);
+    return reqId;
+  }
+
+  const errMsg =
+    data.responseBody?.errorMessage || data.status || resp.statusText;
+  throw new Error(`Start charging failed (HTTP ${resp.status}): ${errMsg}`);
+}
+
 async function requestLocateVehicle(accessToken, vin, pin) {
   log("Requesting vehicle location...");
 
@@ -457,5 +488,6 @@ module.exports = {
   requestLockDoors,
   requestUnlockDoors,
   requestStopCharging,
+  requestStartCharging,
   requestLocateVehicle,
 };

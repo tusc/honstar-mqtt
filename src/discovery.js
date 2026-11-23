@@ -20,19 +20,45 @@ function buildDeviceInfo(vin, vehicle) {
   };
 }
 
+// Entities that stay available when vehicle data is stale (controls + diagnostics)
+const ALWAYS_AVAILABLE = new Set([
+  "ev_target_charge_level",
+  "ev_climate",
+  "ev_climate_temperature",
+  "door_lock",
+  "stop_charging",
+  "start_charging",
+  "refresh",
+  "locate",
+  "location",
+  "last_updated",
+  "connected",
+]);
+
 function publishDiscovery(brokerClient, vin, vehicle) {
   const device = buildDeviceInfo(vin, vehicle);
   const availTopic = `honstar-mqtt/${vin}/available`;
+  const dataAvailTopic = `honstar-mqtt/${vin}/data_available`;
   const opts = { retain: true, qos: 1 };
 
   function pub(component, slug, config) {
     const topic = `homeassistant/${component}/${vin}/${slug}/config`;
+    const availability = [
+      { topic: availTopic, payload_available: "true", payload_not_available: "false" },
+    ];
+    if (!ALWAYS_AVAILABLE.has(slug)) {
+      // Vehicle data goes unavailable after repeated failed polls
+      availability.push({
+        topic: dataAvailTopic,
+        payload_available: "true",
+        payload_not_available: "false",
+      });
+    }
     const payload = JSON.stringify({
       ...config,
       unique_id: `${vin}-${slug}`,
-      availability_topic: availTopic,
-      payload_available: "true",
-      payload_not_available: "false",
+      availability,
+      availability_mode: "all",
       device,
     });
     brokerClient.publish(topic, payload, opts);
@@ -125,6 +151,8 @@ function publishDiscovery(brokerClient, vin, vehicle) {
     state_unlocking: "UNLOCKING",
     payload_lock: "LOCK",
     payload_unlock: "UNLOCK",
+    // The API can't read the lock state; this reflects the last command sent
+    json_attributes_topic: `honstar-mqtt/${vin}/door_lock/attributes`,
   });
 
   // Stop charging button
@@ -132,6 +160,22 @@ function publishDiscovery(brokerClient, vin, vehicle) {
     name: "Stop Charging",
     icon: "mdi:ev-plug-type1",
     command_topic: `honstar-mqtt/${vin}/stop_charging/set`,
+    payload_press: "PRESS",
+  });
+
+  // Start charging button (experimental)
+  pub("button", "start_charging", {
+    name: "Start Charging",
+    icon: "mdi:ev-station",
+    command_topic: `honstar-mqtt/${vin}/start_charging/set`,
+    payload_press: "PRESS",
+  });
+
+  // Refresh (poll now) button
+  pub("button", "refresh", {
+    name: "Refresh Now",
+    icon: "mdi:refresh",
+    command_topic: `honstar-mqtt/${vin}/refresh/set`,
     payload_press: "PRESS",
   });
 
