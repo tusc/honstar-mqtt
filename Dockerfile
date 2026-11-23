@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM node:jod-alpine AS builder
+FROM node:jod-alpine AS builder
 
 WORKDIR /app
 

@@ -1,7 +1,7 @@
 const mqtt = require("mqtt");
 const { log, debug } = require("./config");
 
-function connectBroker(mqttUrl) {
+function connectBroker(mqttUrl, vin) {
   return new Promise((resolve, reject) => {
     log(`Connecting to MQTT broker...`);
     debug(`Broker URL: ${mqttUrl.replace(/\/\/.*@/, "//***@")}`);
@@ -11,15 +11,32 @@ function connectBroker(mqttUrl) {
       clean: true,
       keepalive: 60,
       reconnectPeriod: 5000,
+      // Last Will: if the connection drops without a clean shutdown, the broker
+      // marks the entities unavailable so HA reflects reality.
+      ...(vin && {
+        will: {
+          topic: `honstar-mqtt/${vin}/available`,
+          payload: "false",
+          retain: true,
+          qos: 1,
+        },
+      }),
     });
 
+    let initialConnect = true;
+
     client.on("connect", () => {
-      log("Connected to MQTT broker");
-      resolve(client);
+      if (initialConnect) {
+        initialConnect = false;
+        log("Connected to MQTT broker");
+        resolve(client);
+      } else {
+        log("Reconnected to MQTT broker");
+      }
     });
 
     client.on("reconnect", () => {
-      debug("Reconnecting to MQTT broker...");
+      log("Reconnecting to MQTT broker...");
     });
 
     client.on("error", (err) => {
@@ -27,7 +44,7 @@ function connectBroker(mqttUrl) {
     });
 
     client.on("offline", () => {
-      debug("MQTT broker connection offline");
+      log("MQTT broker connection offline");
     });
 
     // Timeout initial connection after 30 seconds

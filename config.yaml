@@ -1,11 +1,11 @@
 name: HOnStar MQTT
-version: "2.0.0"
+version: "2.0.1"
 slug: honstar-mqtt
 description: >-
   MQTT Bridge for Honda/Acura EVs based on the GM BEV3 platform.
   Polls vehicle status (battery, range, tires, charging, odometer)
   and publishes to MQTT topics.
-url: https://github.com/tsightler/honstar-mqtt
+url: https://github.com/tusc/honstar-mqtt
 arch:
   - amd64
   - aarch64
@@ -31,5 +31,4 @@ schema:
   mqtt_url: str?
   poll_interval: int?
   debug: bool?
-image: ghcr.io/tsightler/honstar-mqtt-{arch}
 init: false

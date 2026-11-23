@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.1] - 2026-11-23
+- Fix entities going "unavailable" after a Home Assistant or broker restart: discovery and availability are now republished when HA sends its birth message (`homeassistant/status` = `online`) and after every broker reconnect
+- Add MQTT Last Will so entities show offline if the connection drops unexpectedly
+- Log broker disconnects/reconnects at info level
+- Fork: build the add-on image locally instead of pulling the upstream prebuilt image
+
 ## [2.0.0] - 2026-05-06
 
 ### Added

@@ -375,7 +375,7 @@ Docker:
     while (!shuttingDown) {
       try {
         await authenticate();
-        brokerClient = await connectBroker(mqttUrl);
+        brokerClient = await connectBroker(mqttUrl, vin);
         break;
       } catch (err) {
         log(`Startup error: ${err.message}`);
@@ -390,13 +390,40 @@ Docker:
     }
     if (shuttingDown) { await shutdown(); return; }
 
-    // Publish HA discovery configs and availability
-    publishDiscovery(brokerClient, vin, vehicle);
-    publishAvailability(brokerClient, vin, true);
+    // Publish HA discovery configs and availability. This is repeated whenever
+    // Home Assistant comes back online (birth message) or the broker connection
+    // is re-established, otherwise HA can lose the entities after an HA/broker
+    // restart and they stay "unavailable" until this add-on is restarted.
+    function announce(reason) {
+      if (shuttingDown) return;
+      if (reason) log(`Republishing HA discovery (${reason})`);
+      publishDiscovery(brokerClient, vin, vehicle);
+      publishAvailability(brokerClient, vin, true);
+      brokerClient.publish(`honstar-mqtt/${vin}/status`, "online", {
+        retain: true,
+        qos: 1,
+      });
+    }
+    announce();
 
-    brokerClient.publish(`honstar-mqtt/${vin}/status`, "online", {
-      retain: true,
-      qos: 1,
+    // Re-announce after a broker reconnect (the Last Will may have set us offline)
+    brokerClient.on("connect", () => announce("broker reconnected"));
+
+    // Re-announce when Home Assistant restarts (HA MQTT birth message)
+    const haStatusTopic = "homeassistant/status";
+    let haBirthTimer = null;
+    brokerClient.subscribe(haStatusTopic, { qos: 1 }, (err) => {
+      if (err) log(`Failed to subscribe to ${haStatusTopic}: ${err.message}`);
+    });
+    brokerClient.on("message", (topic, message) => {
+      if (topic !== haStatusTopic) return;
+      if (message.toString().trim().toLowerCase() !== "online") return;
+      // Small random delay, as recommended by HA, so it is ready for discovery
+      clearTimeout(haBirthTimer);
+      haBirthTimer = setTimeout(
+        () => announce("Home Assistant came online"),
+        5000 + Math.round(Math.random() * 10000)
+      );
     });
 
     // Subscribe to command topics
